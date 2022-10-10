@@ -20,4 +20,6 @@ cocos creator: 3.6.1
 
 之前删除子节点使用的是destroy，貌似只是释放，无法及时删除干净
 
-最后采用removeChild进行移除，貌似还没修复
+最后采用removeChild进行移除，修复了同一节点被多次destroy的bug
+
+计分bug还未解决
