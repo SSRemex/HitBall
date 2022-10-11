@@ -41,6 +41,9 @@ export class Joystick extends Component {
         this.stickPanel.setPosition(pos)
         this.stick.setPosition(pos)
         this.stickPanel.active = true
+        
+        // 点击停止
+        this.vector = v2(0, 0)
 
 
     }
@@ -57,7 +60,8 @@ export class Joystick extends Component {
     }
     private touchEND(event: EventTouch) {
         this.stickPanel.active = false
-        this.vector = v2(0, 0)
+        // 摇杆停止时停止运动
+        // this.vector = v2(0, 0)
     }
 
     update() {

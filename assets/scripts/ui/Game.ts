@@ -1,6 +1,8 @@
-import { _decorator, Component, Node, Prefab, CCInteger, instantiate, v3, Vec3, Label, director, tween, EventTouch } from 'cc';
+import { _decorator, Component, Node, Prefab, CCInteger, instantiate, v3, Vec3, Label, director, tween, PhysicsSystem2D, isValid  } from 'cc';
 import { BoxItem } from '../game/BoxItem';
 import { Player } from '../game/Player';
+import { Tools } from '../Tools';
+
 const { ccclass, property } = _decorator;
 
 @ccclass('Game')
@@ -52,12 +54,12 @@ export class Game extends Component {
     // 组别颜色
     private groupMap: Map<number, string> = new Map([
         [0, "FF0000"],
-        [1, "00FF85"],
-        [2, "0070FF"],
+        [1, "00FFF9"],
+        [2, "FCE5CD"],
         [3, "7700FF"],
         [4, "FFFF00"],
         [5, "70FF00"],
-        [6, "00FFAD"],
+        [6, "A522AA"],
         [7, "0000FF"],
     ])
 
@@ -72,6 +74,8 @@ export class Game extends Component {
     private intervalTime: number
 
     onLoad() {
+        // 开启物理引擎
+        PhysicsSystem2D.instance.enable = true
         this.UIManage("start")
         this.joystick.active = false
 
@@ -104,9 +108,6 @@ export class Game extends Component {
 
     start() {
 
-
-
-
     }
 
     update(deltaTime: number) {
@@ -114,8 +115,6 @@ export class Game extends Component {
         this.disItems.clear()
         this.allPosSave(this.boxRootNode.children)
         this.boxEliminate()
-
-
 
         // 检测游戏是否结束
         if (this.boxRootNode.children.length > 120) {
@@ -169,10 +168,10 @@ export class Game extends Component {
     generateBox(num: number) {
         for (var i = 0; i < num; i++) {
             var node = instantiate(this.boxPrefab)
-            var group_num = this.randomChoice(0, this.groupMap.size - 2)
+            var group_num = Tools.randomChoice(0, this.groupMap.size - 2)
             node.getComponent(BoxItem).init(group_num, this.groupMap.get(group_num))
-            var x = this.randomChoice(this.left_x, this.right_x)
-            var y = this.randomChoice(this.bottom_y, this.top_y)
+            var x = Tools.randomChoice(this.left_x, this.right_x)
+            var y = Tools.randomChoice(this.bottom_y, this.top_y)
             node.setPosition(v3(x, y, 0))
             // console.log(node.getComponent(BoxItem).getR())
 
@@ -201,15 +200,21 @@ export class Game extends Component {
 
     }
 
-
+    private removeBox(item: Node){
+        if (isValid(item, true)) {
+            setTimeout(() => {
+                item.destroy()
+                this.boxRootNode.removeChild(item)
+                this.allBoxInfo.delete(item)
+            }, 0)
+        }
+    }
 
     // 箱体消除算法
     private boxEliminate() {
         var items = this.boxRootNode.children
 
         items.forEach((item) => {
-            // 存放递归中已判断的Node，避免重复判断
-
             if (this.disItems.get(item) != 1) {
                 this.disItems.set(item, 1)
                 let count = 1
@@ -242,45 +247,44 @@ export class Game extends Component {
             }
         }
 
+
         if (isEliminate[0] === 2) {
             this.playerScore += isEliminate[1]
             this.score.getComponent(Label).string = "分数:" + this.playerScore
         }
 
-        // 终止条件
-        if (count >= this.destoryNum && isEliminate[0] === 3) {
-            if (item.isValid) {
-                setTimeout(() => {
-                    // item.destroy()
-                    this.boxRootNode.removeChild(item)
-                    this.allBoxInfo.delete(item)
-
-
-                }, 0)
+        // 判断相同相邻已经满足条件的情况
+        if(adjacentItems.length >= this.destoryNum ){
+            let s = 0
+            for(var i=0;i<adjacentItems.length;i++ ) {
+                this.removeBox(adjacentItems[i])
+                s += i + 1
             }
 
-            return [2, isEliminate[1]]
+            return [2, s]
         }
-        if (isEliminate[0] === 2) {
-            if (item.isValid) {
-                setTimeout(() => {
-                    // item.destroy()
-                    this.boxRootNode.removeChild(item)
-                    this.allBoxInfo.delete(item)
-                }, 0)
+        else{
+            // 终止条件
+            if (count >= this.destoryNum && isEliminate[0] === 3) {
+                this.removeBox(item)
+                return [2, isEliminate[1]]
             }
+            if (isEliminate[0] === 2) {
+                this.removeBox(item)
+                return [2, isEliminate[1]]
+            }
+            else {
+                return [1, 0]
+            }
+        }
 
-            return [2, isEliminate[1]]
-        }
-        else {
-            return [1, 0]
-        }
+        
     }
 
     // 存储所有节点的位置
     private allPosSave(items: readonly Node[]) {
         items.forEach((item) => {
-            this.check_border(item, item.getPosition().x, item.getPosition().y)
+            // this.check_border(item, item.getPosition().x, item.getPosition().y)
             var box = item.getComponent(BoxItem)
 
             this.allBoxInfo.set(item, [box.getR(), box.getPos(), box.getGroup()])
@@ -311,13 +315,9 @@ export class Game extends Component {
         return adjacentNode
     }
 
-    private randomChoice(min: number, max: number) {
-        var num = Math.random() * (max - (min) + 1) + min
-        // 四舍五入取整
-        return Math.round(num)
-    }
+    
 
-    // 检查位置
+    // 检查位置，已废弃
     check_border(item: Node, x: number, y: number) {
 
         x = x > this.right_x ? this.right_x : x
