@@ -16,9 +16,13 @@ export class Joystick extends Component {
 
     @property(Node)
     ballItem: Node = null
+
+    private currentX = 0
+    private currentY = 0
     
     // 摇杆向量
     public vector: Vec2 = v2(0, 0)
+    public isLinear = false
 
     
 
@@ -44,9 +48,9 @@ export class Joystick extends Component {
         this.stickPanel.setPosition(pos)
         this.stick.setPosition(pos)
         this.stickPanel.active = true
-        
         // 点击停止
-        // this.vector = v2(0, 0)
+        this.currentX = 0
+        this.currentY = 0
 
 
     }
@@ -58,14 +62,27 @@ export class Joystick extends Component {
         pos.z = 0
         pos = this.limitMidNodePos(pos)
         this.stick.setPosition(pos)
-        this.vector = v2(pos.x, pos.y)
+        this.currentX = pos.x
+        this.currentY = pos.y
+
 
     }
+    // 一次摇杆只触发一次
     private touchEND(event: EventTouch) {
+        
+        this.vector = v2(this.currentX, this.currentY)
+        this.isLinear = true
         this.stickPanel.active = false
-        // 摇杆停止时停止运动
-        this.vector = v2(0, 0)
+        console.log(3)
+        this.schedule(function(){
+            this.vector = v2(0, 0)
+        },0.1)
+        // // 摇杆停止时停止运动
+        // this.vector = v2(0, 0)
+        // this.isLinear = true
+        
     }
+
 
     update() {
         this.ballItem.children.forEach((item)=>{
@@ -79,6 +96,7 @@ export class Joystick extends Component {
         ball.vector = this.vector
         let angle = this.vector_to_angle(ball, ball.vector)
         ball.angle = angle
+        ball.isLinear = this.isLinear
     }
 
     // 半径限制

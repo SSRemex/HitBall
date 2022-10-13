@@ -176,9 +176,13 @@ export class Game extends Component {
 
     // 加时
     increaseTime(count: number){
+        if(this.countDown < 60){
         // this.countDown += Math.round(count/6)
+        
         this.countDown += 1
         this.countDownLabel.getComponent(Label).string = "Time: " + this.countDown.toString() + "s" 
+        }
+
 
     }
 

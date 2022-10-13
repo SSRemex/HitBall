@@ -14,6 +14,8 @@ export class Ball extends Component {
     // 移动速度
     private defaultSpeed = 5
     private speed = 1
+    // 是否为线速度
+    public isLinear = true
 
     // 速度向量
     public vector: Vec2 = v2(0, 0)
@@ -51,8 +53,17 @@ export class Ball extends Component {
             // 乘速度
             let dir_x = dir.x * this.speed
             let dir_y = dir.y * this.speed
+            if(this.isLinear){
+                this.node.getComponent(RigidBody2D).linearVelocity = v2(dir_x, dir_y)
+            }
+            else {
+                // 角色坐标加上方向
+                let x = this.node.position.x + dir_x/10
+                let y = this.node.position.y + dir_y/10
+                this.check_border(x, y)
+            }
 
-            this.node.getComponent(RigidBody2D).linearVelocity = v2(dir_x, dir_y)
+            
         }
 
     }
@@ -105,6 +116,20 @@ export class Ball extends Component {
                 item.destroy()
             }, 0)
         }
+    }
+
+    check_border(x: number, y: number){
+        const right_x = 310
+        const left_x = -right_x
+        const top_y = 620
+        const bottom_y = -top_y
+
+        x = x > right_x ? right_x : x
+        x = x < left_x ? left_x : x
+        y = y > top_y ? top_y : y
+        y = y < bottom_y ? bottom_y : y
+
+        this.node.setPosition(x, y)
     }
 
     public getPos(): Vec3 {
