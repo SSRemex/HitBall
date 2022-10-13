@@ -1,6 +1,5 @@
-import { _decorator, Component, Node, Prefab, CCInteger, instantiate, v3, Vec3, Label, director, tween, PhysicsSystem2D, isValid  } from 'cc';
-import { BoxItem } from '../game/BoxItem';
-import { Player } from '../game/Player';
+import { _decorator, Component, Node, Prefab, CCInteger, instantiate, v3, Vec3, Label, director, tween, PhysicsSystem2D, EPhysics2DDrawFlags, CircleCollider2D  } from 'cc';
+import { Ball } from '../game/Ball';
 import { Tools } from '../Tools';
 
 const { ccclass, property } = _decorator;
@@ -10,8 +9,8 @@ export class Game extends Component {
 
     private right_x = 310
     private left_x = -this.right_x
-    private top_y = 620
-    private bottom_y = -this.top_y
+    private top_y = 520
+    private bottom_y = -620 
 
 
     @property(Node)
@@ -24,14 +23,10 @@ export class Game extends Component {
     restartButton: Node = null
 
     @property(Node)
-    scoreLabel = null
+    countDownLabel = null
 
     @property(Node)
     joystick: Node = null
-
-
-    @property(Player)
-    player = null
 
     @property(Node)
     score: Node = null
@@ -39,43 +34,31 @@ export class Game extends Component {
 
     // 箱子所挂载根节点
     @property(Node)
-    boxRootNode: Node = null
+    ballRootNode: Node = null
+    static ballRootNodeCopy:Node = undefined
+    
 
     @property(Prefab)
-    boxPrefab: Prefab = null
+    ballPrefab: Prefab = null
 
     @property(CCInteger)
-    boxNum = 10
+    countDown = 60
 
     @property(CCInteger)
-    //相邻相同个数
-    destoryNum = 2
+    ballNum = 10
 
-    // 组别颜色
-    private groupMap: Map<number, string> = new Map([
-        [0, "FF0000"],
-        [1, "00FFF9"],
-        [2, "FCE5CD"],
-        [3, "7700FF"],
-        [4, "FFFF00"],
-        [5, "70FF00"],
-        [6, "A522AA"],
-        [7, "0000FF"],
-    ])
-
-
-    // 全部box位置存储
-    private allBoxInfo: Map<Node, [number, Vec3, number]> = new Map()
 
     private playerScore: number = 0
-
-    private disItems: Map<Node, number> = new Map()
 
     private intervalTime: number
 
     onLoad() {
         // 开启物理引擎
         PhysicsSystem2D.instance.enable = true
+        // PhysicsSystem2D.instance.debugDrawFlags = EPhysics2DDrawFlags.All;
+
+        Game.ballRootNodeCopy = this.ballRootNode
+
         this.UIManage("start")
         this.joystick.active = false
 
@@ -107,20 +90,23 @@ export class Game extends Component {
     }
 
     start() {
-
+        // 检测游戏是否结束
+        this.schedule(function(){
+            this.countDown -= 1
+            this.countDownLabel.getComponent(Label).string = "Time: " + this.countDown.toString() + "s"
+            if(this.countDown <= 0){
+                this.gameOver()
+            }
+        }, 1)
     }
 
     update(deltaTime: number) {
         this.intervalTime += deltaTime
-        this.disItems.clear()
-        this.allPosSave(this.boxRootNode.children)
-        this.boxEliminate()
 
-        // 检测游戏是否结束
-        if (this.boxRootNode.children.length > 120) {
-            this.gameOver()
-        }
-
+        // 小球升级，刚体变换判断
+        this.ballUpgrade()
+        
+        
     }
 
     // 初始化
@@ -128,17 +114,17 @@ export class Game extends Component {
         this.UIManage("none")
         this.joystick.active = true
         // 清空所有小球
-        this.boxRootNode.removeAllChildren()
+        this.ballRootNode.removeAllChildren()
 
         // 时间累计
         this.intervalTime = 0
         this.playerScore = 0
 
-        this.generateBox(this.boxNum)
+        this.generateBall(this.ballNum)
         // 每3秒生成三个球
         // 只执行一次
         this.schedule(function () {
-            this.generateBox(3)
+            this.generateBall(3)
         }, 3)
 
     }
@@ -147,8 +133,12 @@ export class Game extends Component {
     gameOver() {
 
         director.pause()
-
-        this.scoreLabel.getComponent(Label).string = "分数:" + this.playerScore
+        let score = 0
+        this.ballRootNode.children.forEach((item) => {
+            score += item.getComponent(Ball).getGroup() + 1
+        })
+        let resultScoreLabel = this.UI.getChildByPath("/over/scoreLabel").getComponent(Label)
+        resultScoreLabel.string = "Score: " + score
         this.UIManage("over")
         this.joystick.active = false
 
@@ -157,25 +147,60 @@ export class Game extends Component {
     // 游戏重开
     gameRestart() {
         this.gameStart()
+        this.countDown = 10
+        this.countDownLabel.getComponent(Label).string = "Time: " + this.countDown.toString() + "s" 
         director.resume()
+        
 
 
         console.log("restart")
 
     }
 
+    // 小球升级
+    ballUpgrade() {
+        this.ballRootNode.children.forEach((item)=>{
+            let ball = item.getComponent(Ball)
+            if(ball.isUpgrade){
+                let pos = item.getPosition()
+                let group = ball.getGroup()
+                let node = instantiate(this.ballPrefab)
+                node = this.generateOneBall(node, group, pos)
+                this.ballRootNode.addChild(node)
+                this.increaseTime(group+1)
+                item.destroy()
+
+            }
+        })
+    }
+
+    // 加时
+    increaseTime(count: number){
+        // this.countDown += Math.round(count/6)
+        this.countDown += 1
+        this.countDownLabel.getComponent(Label).string = "Time: " + this.countDown.toString() + "s" 
+
+    }
+
+    // 单一球体生成
+    generateOneBall(node:Node, group: number, pos: Vec3 ):Node {
+        node.getComponent(Ball).init(group)
+        node.setPosition(pos)
+
+        return node
+    }
+
     // 球体生成
-    generateBox(num: number) {
+    generateBall(num: number) {
         for (var i = 0; i < num; i++) {
-            var node = instantiate(this.boxPrefab)
-            var group_num = Tools.randomChoice(0, this.groupMap.size - 2)
-            node.getComponent(BoxItem).init(group_num, this.groupMap.get(group_num))
+            var node = instantiate(this.ballPrefab)
+            var group = Tools.randomChoice(0, 1)
             var x = Tools.randomChoice(this.left_x, this.right_x)
             var y = Tools.randomChoice(this.bottom_y, this.top_y)
-            node.setPosition(v3(x, y, 0))
-            // console.log(node.getComponent(BoxItem).getR())
+            var pos = v3(x, y, 0)
+            node = this.generateOneBall(node, group, pos)
 
-            this.boxRootNode.addChild(node)
+            this.ballRootNode.addChild(node)
 
         }
     }
@@ -200,133 +225,10 @@ export class Game extends Component {
 
     }
 
-    private removeBox(item: Node){
-        if (isValid(item, true)) {
-            setTimeout(() => {
-                item.destroy()
-                this.boxRootNode.removeChild(item)
-                this.allBoxInfo.delete(item)
-            }, 0)
-        }
-    }
-
-    // 箱体消除算法
-    private boxEliminate() {
-        var items = this.boxRootNode.children
-
-        items.forEach((item) => {
-            if (this.disItems.get(item) != 1) {
-                this.disItems.set(item, 1)
-                let count = 1
-                this.eliminate(item, count)
-            }
-        })
-
-    }
-
-    // 核心，递归消除算法
-    // 返回值说明 1:重复节点 2:正常消除返回 3:递归终止
-    private eliminate(item: Node, count: number): [number, number] {
-
-        var adjacentItems = this.getSameNodeAdjacent(item)
-
-        var isEliminate = [3, count]
-
-        for (var i = 0; i < adjacentItems.length; i++) {
-            var nextItem = adjacentItems[i]
-            if (this.disItems.get(nextItem) === 1) {
-                continue
-            } else {
-                // 存放递归中已判断的Node，避免重复判断
-                this.disItems.set(nextItem, 1)
-                count += 1
-                isEliminate = this.eliminate(nextItem, count)
-                if (isEliminate[0] === 2) {
-                    break
-                }
-            }
-        }
 
 
-        if (isEliminate[0] === 2) {
-            this.playerScore += isEliminate[1]
-            this.score.getComponent(Label).string = "分数:" + this.playerScore
-        }
 
-        // 判断相同相邻已经满足条件的情况
-        if(adjacentItems.length >= this.destoryNum ){
-            let s = 0
-            for(var i=0;i<adjacentItems.length;i++ ) {
-                this.removeBox(adjacentItems[i])
-                s += i + 1
-            }
-
-            return [2, s]
-        }
-        else{
-            // 终止条件
-            if (count >= this.destoryNum && isEliminate[0] === 3) {
-                this.removeBox(item)
-                return [2, isEliminate[1]]
-            }
-            if (isEliminate[0] === 2) {
-                this.removeBox(item)
-                return [2, isEliminate[1]]
-            }
-            else {
-                return [1, 0]
-            }
-        }
-
-        
-    }
-
-    // 存储所有节点的位置
-    private allPosSave(items: readonly Node[]) {
-        items.forEach((item) => {
-            // this.check_border(item, item.getPosition().x, item.getPosition().y)
-            var box = item.getComponent(BoxItem)
-
-            this.allBoxInfo.set(item, [box.getR(), box.getPos(), box.getGroup()])
-        })
-
-    }
-
-    // 获取目标节点相邻同类节点
-    private getSameNodeAdjacent(item: Node): Node[] {
-        var adjacentNode: Node[] = []
-        var sourceNodeInfo = this.allBoxInfo.get(item)
-        var sourcePos = sourceNodeInfo[1]
-        var sourceR = sourceNodeInfo[0]
-        var sourceGroup = sourceNodeInfo[2]
-        this.allBoxInfo.forEach((value: [number, Vec3, number], key: Node) => {
-            if (item != key) {
-                // 同类判断
-                if (sourceGroup == value[2]) {
-                    // 相邻判断
-                    var distance = Math.sqrt(Math.pow((sourcePos.x - value[1].x), 2) + Math.pow((sourcePos.y - value[1].y), 2))
-                    // 距离 与 半径+偏差值 判断
-                    if (distance <= ((value[0] + sourceR) * 1.1)) {
-                        adjacentNode.unshift(key)
-                    }
-                }
-            }
-        })
-        return adjacentNode
-    }
 
     
-
-    // 检查位置，已废弃
-    check_border(item: Node, x: number, y: number) {
-
-        x = x > this.right_x ? this.right_x : x
-        x = x < this.left_x ? this.left_x : x
-        y = y > this.top_y ? this.top_y : y
-        y = y < this.bottom_y ? this.bottom_y : y
-
-        item.setPosition(x, y)
-    }
-
 }
 

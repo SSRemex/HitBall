@@ -1,5 +1,5 @@
 import { _decorator, Component, Node, Camera, EventTouch, v3, UITransform, v2, Vec2, Vec3 } from 'cc';
-import { Player } from '../game/Player';
+import { Ball } from '../game/Ball';
 const { ccclass, property } = _decorator;
 
 @ccclass('Joystick')
@@ -14,11 +14,14 @@ export class Joystick extends Component {
     @property(Node)
     stickPanel: Node = null
 
-    @property(Player)
-    player: Player = null
+    @property(Node)
+    ballItem: Node = null
     
     // 摇杆向量
     public vector: Vec2 = v2(0, 0)
+
+    
+
 
     onLoad() {
         const { TOUCH_START, TOUCH_CANCEL, TOUCH_END, TOUCH_MOVE } = Node.EventType
@@ -43,7 +46,7 @@ export class Joystick extends Component {
         this.stickPanel.active = true
         
         // 点击停止
-        this.vector = v2(0, 0)
+        // this.vector = v2(0, 0)
 
 
     }
@@ -61,13 +64,21 @@ export class Joystick extends Component {
     private touchEND(event: EventTouch) {
         this.stickPanel.active = false
         // 摇杆停止时停止运动
-        // this.vector = v2(0, 0)
+        this.vector = v2(0, 0)
     }
 
     update() {
-        this.player.vector = this.vector
-        let angle = this.vector_to_angle(this.vector)
-        this.player.angle = angle
+        this.ballItem.children.forEach((item)=>{
+            let ball = item.getComponent(Ball)
+            this.ballControl(ball)
+        })
+    }
+
+    // 小球控制
+    ballControl(ball: Ball){
+        ball.vector = this.vector
+        let angle = this.vector_to_angle(ball, ball.vector)
+        ball.angle = angle
     }
 
     // 半径限制
@@ -116,12 +127,12 @@ export class Joystick extends Component {
     }
 
     // 向量转角度
-    vector_to_angle (vector: Vec2): number {
+    vector_to_angle (ball:Ball, vector: Vec2): number {
         // 将传入向量归一化
         let dir = vector.normalize()
         // 计算出目标角度的弧度
         if(dir.x === 0 && dir.y === 0) {
-            return this.player.angle
+            return ball.angle
         }
         let radian = dir.signAngle(new Vec2(1, 0))
         // 把弧度计算成角度
