@@ -1,5 +1,5 @@
 import { _decorator, Component, Node, Camera, EventTouch, v3, UITransform, v2, Vec2, Vec3 } from 'cc';
-import { Ball } from '../game/Ball';
+import { Player } from '../game/Player';
 const { ccclass, property } = _decorator;
 
 @ccclass('Joystick')
@@ -8,19 +8,17 @@ export class Joystick extends Component {
     @property(Camera)
     uiCamera: Camera = null
 
+    @property(Player)
+    payler: Player = null
+
     @property(Node)
     stick: Node = null
 
     @property(Node)
     stickPanel: Node = null
 
-    @property(Node)
-    ballItem: Node = null
-
-    private currentX = 0
-    private currentY = 0
     
-    // 摇杆向量
+    // 摇杆控制准星方向
     public vector: Vec2 = v2(0, 0)
     public isLinear = false
 
@@ -48,9 +46,8 @@ export class Joystick extends Component {
         this.stickPanel.setPosition(pos)
         this.stick.setPosition(pos)
         this.stickPanel.active = true
-        // 点击停止
-        this.currentX = 0
-        this.currentY = 0
+
+
 
 
     }
@@ -62,41 +59,38 @@ export class Joystick extends Component {
         pos.z = 0
         pos = this.limitMidNodePos(pos)
         this.stick.setPosition(pos)
-        this.currentX = pos.x
-        this.currentY = pos.y
+
+        // 限制角度
+        this.payler.colimator.angle = this.limitAngle(this.vector_to_angle(v2(pos.x, pos.y)))
+        this.payler.colimatorRadian = this.angle_to_randian(this.payler.colimator.angle)
+        
 
 
     }
     // 一次摇杆只触发一次
     private touchEND(event: EventTouch) {
-        
-        this.vector = v2(this.currentX, this.currentY)
-        this.isLinear = true
         this.stickPanel.active = false
-        console.log(3)
-        this.schedule(function(){
-            this.vector = v2(0, 0)
-        },0.1)
-        // // 摇杆停止时停止运动
-        // this.vector = v2(0, 0)
-        // this.isLinear = true
         
     }
 
 
     update() {
-        this.ballItem.children.forEach((item)=>{
-            let ball = item.getComponent(Ball)
-            this.ballControl(ball)
-        })
+      
     }
 
-    // 小球控制
-    ballControl(ball: Ball){
-        ball.vector = this.vector
-        let angle = this.vector_to_angle(ball, ball.vector)
-        ball.angle = angle
-        ball.isLinear = this.isLinear
+    // 准星角度限制 0-180° 用于弧度计算
+    limitAngle(angle: number):number{
+        let new_angle = angle
+        if(angle < 0) {
+            if(angle>=-90){
+                new_angle = 0
+            } else{
+                new_angle = 180
+            }
+        }
+
+        return new_angle
+        
     }
 
     // 半径限制
@@ -145,13 +139,10 @@ export class Joystick extends Component {
     }
 
     // 向量转角度
-    vector_to_angle (ball:Ball, vector: Vec2): number {
+    vector_to_angle (vector: Vec2): number {
         // 将传入向量归一化
         let dir = vector.normalize()
         // 计算出目标角度的弧度
-        if(dir.x === 0 && dir.y === 0) {
-            return ball.angle
-        }
         let radian = dir.signAngle(new Vec2(1, 0))
         // 把弧度计算成角度
         let angle = -this.randian_to_angle(radian)

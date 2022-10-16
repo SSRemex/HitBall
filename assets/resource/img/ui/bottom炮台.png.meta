@@ -1,0 +1,134 @@
+{
+  "ver": "1.0.25",
+  "importer": "image",
+  "imported": true,
+  "uuid": "d98b270c-e5dc-48b6-99e6-256eeda9a601",
+  "files": [
+    ".json",
+    ".png"
+  ],
+  "subMetas": {
+    "6c48a": {
+      "importer": "texture",
+      "uuid": "d98b270c-e5dc-48b6-99e6-256eeda9a601@6c48a",
+      "displayName": "bottom炮台",
+      "id": "6c48a",
+      "name": "texture",
+      "userData": {
+        "wrapModeS": "clamp-to-edge",
+        "wrapModeT": "clamp-to-edge",
+        "imageUuidOrDatabaseUri": "d98b270c-e5dc-48b6-99e6-256eeda9a601",
+        "isUuid": true,
+        "visible": false,
+        "minfilter": "linear",
+        "magfilter": "linear",
+        "mipfilter": "none",
+        "anisotropy": 0
+      },
+      "ver": "1.0.22",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "f9941": {
+      "importer": "sprite-frame",
+      "uuid": "d98b270c-e5dc-48b6-99e6-256eeda9a601@f9941",
+      "displayName": "bottom炮台",
+      "id": "f9941",
+      "name": "spriteFrame",
+      "userData": {
+        "trimType": "auto",
+        "trimThreshold": 1,
+        "rotated": false,
+        "offsetX": 0,
+        "offsetY": 18,
+        "trimX": 0,
+        "trimY": 89,
+        "width": 333,
+        "height": 119,
+        "rawWidth": 333,
+        "rawHeight": 333,
+        "borderTop": 0,
+        "borderBottom": 0,
+        "borderLeft": 0,
+        "borderRight": 0,
+        "packable": true,
+        "pixelsToUnit": 100,
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "meshType": 0,
+        "vertices": {
+          "rawPosition": [
+            -166.5,
+            -59.5,
+            0,
+            166.5,
+            -59.5,
+            0,
+            -166.5,
+            59.5,
+            0,
+            166.5,
+            59.5,
+            0
+          ],
+          "indexes": [
+            0,
+            1,
+            2,
+            2,
+            1,
+            3
+          ],
+          "uv": [
+            0,
+            244,
+            333,
+            244,
+            0,
+            125,
+            333,
+            125
+          ],
+          "nuv": [
+            0,
+            0.37537537537537535,
+            1,
+            0.37537537537537535,
+            0,
+            0.7327327327327328,
+            1,
+            0.7327327327327328
+          ],
+          "minPos": [
+            -166.5,
+            -59.5,
+            0
+          ],
+          "maxPos": [
+            166.5,
+            59.5,
+            0
+          ]
+        },
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "d98b270c-e5dc-48b6-99e6-256eeda9a601@6c48a",
+        "atlasUuid": ""
+      },
+      "ver": "1.0.11",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "type": "sprite-frame",
+    "fixAlphaTransparencyArtifacts": true,
+    "hasAlpha": true,
+    "redirect": "d98b270c-e5dc-48b6-99e6-256eeda9a601@f9941"
+  }
+}
