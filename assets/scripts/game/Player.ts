@@ -30,8 +30,7 @@ export class Player extends Component {
     public colimatorRadian: number = Math.PI / 2
     // 准星半径
     public colimatorRadius: number = 80
-    // 准星速度
-    public colimatorSpeed: number = 20
+
 
     // 是否开火
     public isFire: boolean = true

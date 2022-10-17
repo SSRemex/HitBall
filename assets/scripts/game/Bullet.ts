@@ -33,7 +33,6 @@ export class Bullet extends Component {
         let dir = pos.normalize()
         let vec_x = dir.x * this.bulletSpeed
         let vec_y = dir.y * this.bulletSpeed
-        console.log(vec_x, vec_y)
         this.node.getComponent(RigidBody2D).linearVelocity = v2(vec_x, vec_y)
     }
 

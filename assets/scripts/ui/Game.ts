@@ -49,9 +49,10 @@ export class Game extends Component {
     ballNum = 10
 
     private playerScore: number = 0
+    // 阶段分 每100分 hp + 1
+    private stageScore: number = 0
 
-
-    private bulletGenerateSpeed = 0.5
+    private bulletGenerateSpeed = 0.2
 
     // 当前是否重开
     private isRestart: boolean = false
@@ -101,10 +102,20 @@ export class Game extends Component {
 
         // 小球分裂
         this.ballSplit()
+
+        // 阶段分超过100 hp + 1
+        if (this.stageScore >= 100) {
+            this.stageScore -= 100
+            this.player.getComponent(Player).hp += 1
+            this.player.getComponent(Player).hpLabel.getComponent(Label).string = this.player.getComponent(Player).hp.toString()
+        }
+
         // 游戏结束判定
         if (this.player.getComponent(Player).hp <= 0) {
             this.gameOver()
         }
+
+
 
     }
 
@@ -112,22 +123,31 @@ export class Game extends Component {
     gameStart() {
         this.UIManage("none")
         this.joystick.active = true
-        
+
+
+        // 停止所有的定时任务
+        this.unscheduleAllCallbacks()
+        // 清空所有小球
+        this.ballRootNode.removeAllChildren()
+
 
         // 分数累计
         this.playerScore = 0
+        this.stageScore = 0
 
         // 重置血量
         this.player.getComponent(Player).hp = this.player.getComponent(Player).defaultHp
         this.player.getComponent(Player).hpLabel.getComponent(Label).string = this.player.getComponent(Player).hp.toString()
         this.player.getChildByName("clip").removeAllChildren()
-        this.generateBall(this.ballNum)
-        // 每3秒生成三个球
+        //this.generateBall(this.ballNum)
+        this.generateBall(2)
+        // 每5秒生成2个球
         // 只执行一次
         this.schedule(function () {
-            this.generateBall(3)
-            if(this.isRestart) {
+            if(this.ballRootNode.children.length <= 20) {
+                this.generateBall(2)
             }
+            
         }, 5)
         this.player.getComponent(Player).fire()
         this.schedule(function () {
@@ -144,22 +164,19 @@ export class Game extends Component {
         resultScoreLabel.string = "Score: " + this.playerScore
         this.UIManage("over")
         this.joystick.active = false
-        // 停止所有的定时任务
-        this.unscheduleAllCallbacks()
-        // 清空所有小球
-        this.ballRootNode.removeAllChildren()
+
 
     }
 
     // 游戏重开
     gameRestart() {
-        
+
         this.gameStart()
         this.scoreLabel.getComponent(Label).string = "Score: " + this.playerScore.toString() + "s"
         this.isRestart = true
-        
+
         director.resume()
-        
+
 
         console.log("restart")
 
@@ -170,23 +187,30 @@ export class Game extends Component {
         this.ballRootNode.children.forEach((item) => {
             let ball = item.getComponent(Ball)
             if (ball.isSplit) {
-                let pos = item.getPosition()
+                let node1_pos = item.getPosition()
+                let node2_pos = item.getPosition()
+                // 出现二者合到一起的情况, 生成位置错开
+                node1_pos.x += 2
+                node1_pos.y += 2
+                node2_pos.x -= 2
+                node2_pos.y -= 2
+
                 let group = ball.getGroup() - 1
 
-
-                // 索引小于0直接销毁
-                if (group >= 0) {
+                // 索引小于1直接销毁
+                if (group >= 1) {
                     let node_1 = instantiate(this.ballPrefab)
                     let node_2 = instantiate(this.ballPrefab)
-                    node_1 = this.generateOneBall(node_1, group, pos)
+                    node_1 = this.generateOneBall(node_1, group, node1_pos)
                     this.ballRootNode.addChild(node_1)
-                    node_2 = this.generateOneBall(node_2, group, pos)
+                    node_2 = this.generateOneBall(node_2, group, node2_pos)
                     this.ballRootNode.addChild(node_2)
 
 
                 }
                 // 销毁加分
                 this.playerScore += group + 1
+                this.stageScore += group + 1
                 this.scoreLabel.getComponent(Label).string = "Score:" + this.playerScore
                 item.destroy()
 
@@ -198,7 +222,8 @@ export class Game extends Component {
     // 单一球体生成
     generateOneBall(node: Node, group: number, pos: Vec3): Node {
         // 先设置位置，否则初始化时pos会被归一化，指针传递
-        node.setPosition(pos)
+        let new_pos = pos
+        node.setPosition(new_pos)
         node.getComponent(Ball).init(group, pos)
 
 
@@ -209,10 +234,10 @@ export class Game extends Component {
     generateBall(num: number) {
         for (var i = 0; i < num; i++) {
             var node = instantiate(this.ballPrefab)
-            var group = Tools.randomChoice(0, 1)
+            var group = Tools.randomChoice(1, 6)
             var x = Tools.randomChoice(this.left_x, this.right_x)
             // 控制小球生成位置在0以上
-            var y = Tools.randomChoice(this.bottom_y + 620, this.top_y)
+            var y = Tools.randomChoice(this.bottom_y + 700, this.top_y)
             var pos = v3(x, y, 0)
             node = this.generateOneBall(node, group, pos)
 
