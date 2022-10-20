@@ -1,7 +1,8 @@
-import { _decorator, Component, Node, Prefab, CCInteger, instantiate, v3, Vec3, Label, director, tween, PhysicsSystem2D, EPhysics2DDrawFlags, CircleCollider2D } from 'cc';
+import { _decorator, Component, Node, Prefab, CCInteger, instantiate, Animation, v3, Vec3, Label, director, tween, PhysicsSystem2D, EPhysics2DDrawFlags, CircleCollider2D, TTFFont, sys } from 'cc';
 import { Ball } from '../game/Ball';
 import { Player } from '../game/Player';
 import { Tools } from '../Tools';
+import { Level } from './Level';
 
 const { ccclass, property } = _decorator;
 
@@ -35,6 +36,12 @@ export class Game extends Component {
     @property(Node)
     player: Node = null
 
+    @property(Node)
+    levelLabel: Node = null
+
+    @property(Prefab)
+    levelUpPrefab: Prefab = null
+
 
     // 箱子所挂载根节点
     @property(Node)
@@ -54,8 +61,12 @@ export class Game extends Component {
 
     private bulletGenerateSpeed = 0.2
 
-    // 当前是否重开
-    private isRestart: boolean = false
+    // 最大小球编号
+    private max = 1
+
+    // 升级动画节点
+    private levelUpNode = null
+
 
 
     onLoad() {
@@ -66,8 +77,15 @@ export class Game extends Component {
         Game.ballRootNodeCopy = this.ballRootNode
 
         this.UIManage("start")
-        this.joystick.active = false
 
+        // 加载升级动画预制体
+        this.levelUpNode = instantiate(this.levelUpPrefab)
+        this.levelUpNode.active = false
+        this.node.addChild(this.levelUpNode)
+
+
+
+        // 按键事件
         this.startButton.on(Node.EventType.TOUCH_START, () => {
             tween(this.startButton)
                 .to(0.2, { scale: v3(0.9, 0.9, 0.9) }).start()
@@ -96,6 +114,8 @@ export class Game extends Component {
     }
 
     start() {
+
+        console.log("platform", sys.platform)
     }
 
     update(deltaTime: number) {
@@ -110,10 +130,20 @@ export class Game extends Component {
             this.player.getComponent(Player).hpLabel.getComponent(Label).string = this.player.getComponent(Player).hp.toString()
         }
 
+        // 关卡升级判断
+        if(this.levelLabel.getComponent(Level).isLevelUp(this.playerScore)){
+            this.levelUpNode.active = true
+            let anim = this.levelUpNode.getComponent(Animation)
+            anim.play("levelup")
+            this.max = this.levelLabel.getComponent(Level).getInitLevelInfo().get("max") - 1
+        }
+
+
         // 游戏结束判定
         if (this.player.getComponent(Player).hp <= 0) {
             this.gameOver()
         }
+
 
 
 
@@ -129,6 +159,10 @@ export class Game extends Component {
         this.unscheduleAllCallbacks()
         // 清空所有小球
         this.ballRootNode.removeAllChildren()
+        // 当前最大小球编号初始化
+        
+        this.levelLabel.getComponent(Level).restart()
+        this.max = this.levelLabel.getComponent(Level).getInitLevelInfo().get("max") - 1
 
 
         // 分数累计
@@ -140,15 +174,13 @@ export class Game extends Component {
         this.player.getComponent(Player).hpLabel.getComponent(Label).string = this.player.getComponent(Player).hp.toString()
         this.player.getChildByName("clip").removeAllChildren()
         //this.generateBall(this.ballNum)
-        this.generateBall(2)
+        this.generateBall(5)
         // 每5秒生成2个球
-        // 只执行一次
         this.schedule(function () {
             if(this.ballRootNode.children.length <= 20) {
                 this.generateBall(2)
             }
-            
-        }, 5)
+        }, 4)
         this.player.getComponent(Player).fire()
         this.schedule(function () {
             this.player.getComponent(Player).fire()
@@ -173,7 +205,6 @@ export class Game extends Component {
 
         this.gameStart()
         this.scoreLabel.getComponent(Label).string = "Score: " + this.playerScore.toString() + "s"
-        this.isRestart = true
 
         director.resume()
 
@@ -197,8 +228,8 @@ export class Game extends Component {
 
                 let group = ball.getGroup() - 1
 
-                // 索引小于1直接销毁
-                if (group >= 1) {
+                // 索引小于0直接销毁
+                if (group >= 0) {
                     let node_1 = instantiate(this.ballPrefab)
                     let node_2 = instantiate(this.ballPrefab)
                     node_1 = this.generateOneBall(node_1, group, node1_pos)
@@ -209,8 +240,8 @@ export class Game extends Component {
 
                 }
                 // 销毁加分
-                this.playerScore += group + 1
-                this.stageScore += group + 1
+                this.playerScore += group + 2
+                this.stageScore += group + 2
                 this.scoreLabel.getComponent(Label).string = "Score:" + this.playerScore
                 item.destroy()
 
@@ -234,7 +265,7 @@ export class Game extends Component {
     generateBall(num: number) {
         for (var i = 0; i < num; i++) {
             var node = instantiate(this.ballPrefab)
-            var group = Tools.randomChoice(1, 6)
+            var group = Tools.randomChoice(1, this.max)
             var x = Tools.randomChoice(this.left_x, this.right_x)
             // 控制小球生成位置在0以上
             var y = Tools.randomChoice(this.bottom_y + 700, this.top_y)

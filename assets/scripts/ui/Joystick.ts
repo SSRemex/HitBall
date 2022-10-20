@@ -19,7 +19,7 @@ export class Joystick extends Component {
 
     public defaultAngle: number = 90
     public angle: number = this.defaultAngle
-    private angleSpeed: number = 0.5
+    private angleSpeed: number = 0.7
 
     // 按钮长按效果
     private leftHold: boolean = false

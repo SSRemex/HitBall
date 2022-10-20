@@ -5,8 +5,8 @@ const { ccclass, property } = _decorator;
 export class Tools extends Component {
     public static randomChoice(min: number, max: number) {
         var num = Math.random() * (max - (min) + 1) + min
-        // 四舍五入取整
-        return Math.round(num)
+        // 去除小数
+        return Math.floor(num)
     }
 }
 
